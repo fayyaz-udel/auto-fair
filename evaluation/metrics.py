@@ -2,9 +2,10 @@
 import torch
 import torch.nn as nn
 import traceback
-from transformers import BartTokenizer, BartForConditionalGeneration
+from transformers import BartTokenizer, BartForConditionalGeneration, BertTokenizer, BertModel
 from typing import List
 import numpy as np
+from scipy.stats import entropy
 
 
 class BARTScorer:
@@ -111,3 +112,62 @@ class BARTScorer:
 
         print(self.score(src_list, tgt_list, batch_size))
 
+
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from numpy import dot
+from numpy.linalg import norm
+import pandas as pd
+
+
+class DomainSpecificity:
+    def __init__(self):
+        self.model = SentenceTransformer("neuml/pubmedbert-base-embeddings")
+
+    def cosine_similarity(self, vecs):
+        vec1 = vecs[0]
+        vec2 = vecs[1]
+        return dot(vec1, vec2) / (norm(vec1) * norm(vec2))
+
+    def embed(self, sentences):
+        return self.model.encode(sentences)
+
+    def caluate(self, q1, q2):
+        return self.cosine_similarity(self.embed([q1, q2]))
+
+
+class SemanticEntropy:
+
+    def __init__(self):
+        self.tokenizer, self.model = self.load_bert_model()
+
+    def load_bert_model(self):
+        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        model = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True, return_dict=True)
+        return tokenizer, model
+
+    def get_bert_embedding(self, tokenizer, model, text):
+        inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True, max_length=512)
+        with torch.no_grad():
+            outputs = model(**inputs)
+        hidden_states = outputs.hidden_states[-1]
+        sentence_embedding = torch.mean(hidden_states, dim=1)
+        return sentence_embedding.squeeze()
+
+    def cosine_similarity(self, vec1, vec2):
+        cos_sim = torch.nn.functional.cosine_similarity(vec1, vec2, dim=0)
+        return cos_sim.item()
+
+    def calculate_entropy(self, similarity):
+        # Calculate entropy based on similarity and dissimilarity
+        p_sim = similarity
+        p_diff = 1 - similarity
+        probabilities = torch.tensor([p_sim, p_diff])
+        return entropy(probabilities.numpy(), base=2)
+
+    def calculate_semantic_entropy(self, vignette, context):
+        embedding1 = self.get_bert_embedding(self.tokenizer, self.model, vignette)
+        embedding2 = self.get_bert_embedding(self.tokenizer, self.model, context)
+        similarity_score = self.cosine_similarity(embedding1, embedding2)
+        entropy_score = self.calculate_entropy(similarity_score)
+        return entropy_score, similarity_score

@@ -18,7 +18,7 @@ def calculate_avg_std(df, file_path):
     print(f"All Tokens count, {token_count}\n")
     f.write(f"All Tokens count, {token_count}\n")
     for column in df.columns:
-        if df[column].dtype in ['int64', 'float64']:
+        if df[column].dtype in ['int64', 'float64', 'float32']:
             avg = df[column].mean()
             std = df[column].std()
             formatted_avg = f"{avg:.2f}"

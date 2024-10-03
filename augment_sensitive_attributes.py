@@ -45,5 +45,5 @@ def run_step2(folder_path):
 
 
 if __name__ == "__main__":
-    path = "./output/obesity stigma_gpt-4o_2024_07_17_18_57_00_wocontext/"
+    path = "./output/obesity stigma_gpt-4o-2024-05-13_2024_10_03__13_22_09/"
     run_step2(path)

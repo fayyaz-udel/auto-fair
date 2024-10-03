@@ -4,10 +4,7 @@ import pandas as pd
 from deepeval.metrics import GEval
 from deepeval.test_case import LLMTestCaseParams, LLMTestCase
 
-from config import openai_key
 from utils import calculate_avg_std
-
-os.environ["OPENAI_API_KEY"] = openai_key
 
 
 def g_eval(actual_output, context):
@@ -35,12 +32,11 @@ def run(file_path):
 
     new_df = pd.DataFrame(new_df_rows)
     new_df.to_excel(file_path, index=False)
-    calculate_avg_std(new_df, file_path[:-5] + "_geval.txt")
+    calculate_avg_std(new_df, file_path[:-5] + "_metrics.txt")
 
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = openai_key
-
-    folder = "./output/obesity stigma_claude_2024_10_02__03_11_56/"
-    path = folder + "vignettes__metrics.xlsx"
+    # os.environ["OPENAI_API_KEY"] =
+    folder = "../output/obesity stigma_gpt-4o-2024-05-13_2024_10_03__13_22_09/"
+    path = folder + "vignettes_.xlsx"
     run(path)
