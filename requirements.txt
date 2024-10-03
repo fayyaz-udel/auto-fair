@@ -8,3 +8,6 @@ boto3
 nltk
 openai
 openpyxl
+
+sagemaker
+scikit-learn

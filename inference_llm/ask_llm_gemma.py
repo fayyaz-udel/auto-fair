@@ -54,14 +54,14 @@ def run_step3(folder, endpoint, model_name=None):
     endpoint_short = endpoint.replace("jumpstart-dft-hf-llm-", "")
 
     for sa in [''] + config.sensitive_attribute_list:
-        print("hamed   " + sa)
+        print("Sensitive Attribute   " + sa)
         file_in_path = folder + f'{sa}/vignettes_{sa}.xlsx'
         file_out_path = folder + f'{sa}/vignettes_{sa}_{endpoint_short}.xlsx'
         ask_from_llm(endpoint, file_in_path, file_out_path, model_name)
 
 
 if __name__ == "__main__":
-    folder = './output/obesity stigma_gpt-4o_2024_07_17__18_29_43/'
-    endpoint = "jumpstart-dft-hf-llm-gemma-7b-instr-20240903-184920"
+    folder = '../output/obesity stigma_gpt-4o-2024-05-13_2024_10_03__13_22_09/'
+    endpoint = "jumpstart-dft-hf-llm-gemma-7b-instr-20241003-184730"
     model_name = 'huggingface-llm-phi-2'
     run_step3(folder, endpoint, model_name)
