@@ -131,17 +131,17 @@ if __name__ == "__main__":
     # mistral-7b-v3-20240903-162556
     endpoint = "jumpstart-dft-meta-textgeneration-l-20240903-162450"
     endpoint = endpoint.replace("jumpstart-dft-hf-llm-", "")
-    out_path = f'./output/{folder_name}/fairness_{endpoint}_{threshold:0.2f}.txt'
+    out_path = f'../output/{folder_name}/fairness_{endpoint}_{threshold:0.2f}.txt'
     file_initiate(out_path, folder_name, endpoint)
 
     for sa in config.sensitive_attribute_list + ['']:
-        file_in_path = f'./output/{folder_name}/{sa}/vignettes_{sa}_{endpoint}.xlsx'
+        file_in_path = f'../output/{folder_name}/{sa}/vignettes_{sa}_{endpoint}.xlsx'
         file_yesno_path = file_in_path[:-5] + "_yesno" + file_in_path[-5:]
 
         binarize_response(file_in_path, file_yesno_path)
         ############################################################################
         df = pd.read_excel(file_yesno_path)
-        df_eval = pd.read_excel(f'./output/{folder_name}/vignettes__metrics.xlsx')
+        df_eval = pd.read_excel(f'../output/{folder_name}/vignettes__metrics.xlsx')
         pd.merge(df, df_eval[['doc_id', 'Number', 'geval']], how='left', left_on=['doc_id', 'Number'], right_on=['doc_id', 'Number']).to_excel(file_yesno_path, index=False)
         ############################################################################
         evaluate_llm_response(file_yesno_path, out_path, sa, threshold)
