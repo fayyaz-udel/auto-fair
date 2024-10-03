@@ -2,8 +2,6 @@ import json
 import os
 
 import boto3
-import pandas as pd
-import tiktoken
 from botocore.exceptions import ClientError
 from nltk import word_tokenize
 from openai import OpenAI
@@ -31,18 +29,18 @@ def calculate_avg_std(df, file_path):
     f.close()
 
 
-def chat(prompt: str, system: str = None, model_version: str = model) -> str:
+def chat(prompt: str, model: str, system: str = None) -> str:
     ############## GPT ##############
-    if model_version == "gpt-4o":
+    if "gpt" in model:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         msg = [{"role": "user", "content": prompt}]
         if system:
             msg.append({"role": "system", "content": system})
-        chat_completion = client.chat.completions.create(messages=msg, model=model_version, )
+        chat_completion = client.chat.completions.create(messages=msg, model=model)
         return chat_completion.choices[0].message.content
 
     ############## Claude ##############
-    elif model_version == "claude":
+    elif model == "claude":
         bedrock = boto3.client(service_name="bedrock-runtime")
         body = json.dumps({
             "max_tokens": 256000,
@@ -56,7 +54,7 @@ def chat(prompt: str, system: str = None, model_version: str = model) -> str:
         return response_body.get("content")[0]['text']
 
     ############## llama3 ##############
-    elif model_version == "llama3":
+    elif model == "llama3":
         client = boto3.client("bedrock-runtime", region_name="us-east-1")
         model_id = "meta.llama3-70b-instruct-v1:0"
         formatted_prompt = f"""
@@ -86,16 +84,14 @@ def chat(prompt: str, system: str = None, model_version: str = model) -> str:
     else:
         raise Exception("Invalid model version")
 
-def generate_vignettes(disease, count, context, length="Brief"):
-    if length == "Brief":
-        # vignette_prompt = brief_vignette_template.format(disease=disease, context=context)
-        vignette_prompt = brief_vignette_template_wo_context
-    elif length == "Detailed":
-        vignette_prompt = detailed_vignette_template.format(count=count, condition=disease, context=context)
-    else:
-        Exception("Invalid length")
 
-    vignettes = chat(vignette_prompt)
+def generate_vignettes(disease, context, model, has_context=True):
+    if has_context:
+        vignette_prompt = brief_vignette_template.format(disease=disease, context=context)
+    else:
+        vignette_prompt = brief_vignette_template_wo_context
+
+    vignettes = chat(vignette_prompt, model)
     return vignettes
 
 
@@ -118,9 +114,3 @@ def generate_pubmed_query(disease):
         query += f'AND ({word}[Title]) \n\n'
 
     return query[3:] + pubmed_query
-
-
-if __name__ == "__main__":
-    df = pd.read_excel("./output/obesity stigma_gpt-4o_2024_07_17__18_29_43/vignettes__metrics.xlsx")
-    df = df[df['geval'] >= 0.5]
-    calculate_avg_std(df, "./output/obesity stigma_gpt-4o_2024_07_17__18_29_43/vignettes_metrics_50.txt")

@@ -62,7 +62,3 @@ def aggegate_vignettes(folder_path):
 
     final_df = pd.concat(all_dfs, ignore_index=True)
     final_df.to_excel(f'{folder_path}vignettes_.xlsx', index=False)
-
-
-if __name__ == "__main__":
-    aggegate_vignettes('./output/obesity_gpt-4o_2024_07_15__16_52_14/')

@@ -12,7 +12,7 @@ from augment_sensitive_attributes import run_step2
 dotenv.load_dotenv()
 
 import streamlit as st
-from generation.generate_vignettes import run_step1
+from generation.generate_vignettes import generate
 
 st.markdown("<h1 style='text-align: center;'>Vignette Generator</h1>", unsafe_allow_html=True)
 openai_key = st.text_input('OpenAI API Key:', type='password')
@@ -28,7 +28,7 @@ def generate_vignette(params):
     else:
         sensitive_attribute_list = ["white", "black", "asian", "hispanic"]
     file_name = "vignettes_.xlsx"
-    folder_path = run_step1(params)
+    folder_path = generate(params)
     run_step2(folder_path)
 
     dfs = []
