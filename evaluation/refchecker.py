@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 
-from config import openai_key
 from refchecker import LLMExtractor, LLMChecker
 
 from utils import chat
@@ -35,11 +34,10 @@ def run(file_path):
 
 
 if __name__ == "__main__":
-    os.environ["OPENAI_API_KEY"] = openai_key
     model = 'gpt-4o'
     extractor = LLMExtractor(model=model, batch_size=8)
     checker = LLMChecker(model=model, batch_size=8)
 
-    folder = "./output/obesity stigma_claude_2024_10_02__03_11_56/"
-    path = folder + "vignettes__metrics.xlsx"
+    folder = "../output/obesity stigma_gpt-4o-2024-05-13_2024_10_03__13_22_09/"
+    path = folder + "vignettes_.xlsx"
     run(path)
