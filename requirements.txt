@@ -11,3 +11,4 @@ openpyxl
 
 sagemaker
 scikit-learn
+pymetamap

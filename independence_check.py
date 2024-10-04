@@ -1,11 +1,17 @@
 import requests
 import pandas as pd
 import re
+from pymetamap import MetaMap
 
-apikey = "4abc7a9f-70d1-4891-b741-6dbd99cb5c78"
+apikey = 'umls-api-key'
 version = "current"
 
+metamap_base_dir = '/gwshare/umls_2021/metamap/public_mm/'
+metamap_bin_dir = 'bin/metamap20'
+metamap_pos_server_dir = 'bin/skrmedpostctl'
+metamap_wsd_server_dir = 'bin/wsdserverctl'
 
+th = 3
 def retrieve_neighbours(source, identifier, operation):
     df = pd.DataFrame(columns=['ui', 'uri', 'name', 'source'])
     uri = "https://uts-ws.nlm.nih.gov"
@@ -134,8 +140,7 @@ def retrieve_atoms(identifier):
     return atoms_df
 
 
-if __name__ == "__main__":
-    query = "prostate-cancer"
+def check_independence(query):
     cui_df = results_list(query)
 
     atoms_df = pd.DataFrame(columns=['Name', 'CUI', 'AUI', 'Term Type', 'Code', 'Source Vocabulary'])
@@ -155,6 +160,42 @@ if __name__ == "__main__":
 
     parent_list = parents_df['name'].to_list()
     print(parent_list)
+    output = {}
     for word in ['male', 'female', 'black', 'white', 'asian', 'hispanic']:
-        word_count = sum(len(re.findall(rf'\b{re.escape(word)}\b', sentence, re.IGNORECASE)) for sentence in parent_list)
-        print(f'{word}: {word_count}')
+        word_count = sum(
+            len(re.findall(rf'\b{re.escape(word)}\b', sentence, re.IGNORECASE)) for sentence in parent_list)
+        output[word] = word_count
+
+    return output
+
+
+def get_keys_from_mm(concept, klist):
+    conc_dict = concept._asdict()
+    conc_list = [conc_dict.get(kk) for kk in klist]
+    return (tuple(conc_list))
+
+
+
+def extract_concepts(query):
+    keys_of_interest = ['preferred_name', 'cui', 'semtypes', 'pos_info']
+    metam = MetaMap.get_instance(metamap_base_dir + metamap_bin_dir)
+    cons, errs = metam.extract_concepts([query],
+                                        word_sense_disambiguation=True,
+                                        restrict_to_sts=['sosy'],
+                                        composite_phrase=1,
+                                        prune=30)
+    cols = [get_keys_from_mm(cc, keys_of_interest) for cc in cons]
+    return pd.DataFrame(cols, columns=keys_of_interest)
+
+def run(path):
+    v = pd.read_excel(path)
+    for index, row in v.iterrows():
+        concepts = extract_concepts(row['Question'])
+        for concept in concepts['preferred_name'].to_list():
+            check_independence(concept)
+
+
+
+if __name__ == "__main__":
+    path = './output/obesity stigma_gpt-4o-2024-05-13_2024_10_03__13_22_09/'
+    run(path + 'vignettes_.xlsx')
