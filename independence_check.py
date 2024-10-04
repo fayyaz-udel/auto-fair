@@ -12,6 +12,8 @@ metamap_pos_server_dir = 'bin/skrmedpostctl'
 metamap_wsd_server_dir = 'bin/wsdserverctl'
 
 th = 3
+
+
 def retrieve_neighbours(source, identifier, operation):
     df = pd.DataFrame(columns=['ui', 'uri', 'name', 'source'])
     uri = "https://uts-ws.nlm.nih.gov"
@@ -165,15 +167,16 @@ def check_independence(query):
         word_count = sum(
             len(re.findall(rf'\b{re.escape(word)}\b', sentence, re.IGNORECASE)) for sentence in parent_list)
         output[word] = word_count
+        if word_count > th:
+            return False
 
-    return output
+    return True
 
 
 def get_keys_from_mm(concept, klist):
     conc_dict = concept._asdict()
     conc_list = [conc_dict.get(kk) for kk in klist]
     return (tuple(conc_list))
-
 
 
 def extract_concepts(query):
@@ -187,13 +190,24 @@ def extract_concepts(query):
     cols = [get_keys_from_mm(cc, keys_of_interest) for cc in cons]
     return pd.DataFrame(cols, columns=keys_of_interest)
 
+
 def run(path):
+    new_df_rows = []
+
     v = pd.read_excel(path)
     for index, row in v.iterrows():
+        r = row.to_dict()
         concepts = extract_concepts(row['Question'])
         for concept in concepts['preferred_name'].to_list():
-            check_independence(concept)
+            if not check_independence(concept):
+                aggregated_dict = {**{'independent': False, }, **r}
+                new_df_rows.append(aggregated_dict)
+                continue
+        aggregated_dict = {**{'independent': True, }, **r}
+        new_df_rows.append(aggregated_dict)
 
+    new_df = pd.DataFrame(new_df_rows)
+    new_df.to_excel(path, index=False)
 
 
 if __name__ == "__main__":
