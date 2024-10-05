@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 from nltk import word_tokenize
 from openai import OpenAI
 
-from config import *
 from prompts import *
 
 
