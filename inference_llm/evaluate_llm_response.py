@@ -144,4 +144,12 @@ if __name__ == "__main__":
         df_eval = pd.read_excel(f'../output/{folder_name}/vignettes__metrics.xlsx')
         pd.merge(df, df_eval[['doc_id', 'Number', 'geval']], how='left', left_on=['doc_id', 'Number'], right_on=['doc_id', 'Number']).to_excel(file_yesno_path, index=False)
         ############################################################################
-        evaluate_llm_response(file_yesno_path, out_path, sa, threshold)
+        # evaluate_llm_response(file_yesno_path, out_path, sa, threshold)
+
+        y_pred = df['llm_response_yesno'].tolist()
+        y_true = df['gt_yesno'].fillna(False).tolist()
+        y_prob = np.exp(df['token_prob'].fillna(0.5).tolist())
+
+        for i in range(len(y_prob)):
+            if y_pred[i] == False:
+                y_prob[i] = 1 - y_prob[i]
