@@ -17,7 +17,7 @@ def calculate_equal_opportunity(df, group_column, true_column, predicted_column)
     equal_opportunity = {}
     for group in df[group_column].unique():
         group_df = df[df[group_column] == group]
-        true_positive_rate = group_df[(group_df[true_column] == 1)][predicted_column].mean()
+        true_positive_rate = group_df[group_df[true_column] == 1][predicted_column].mean()
         equal_opportunity[group] = true_positive_rate
     return equal_opportunity
 
@@ -30,10 +30,10 @@ def calculate_equalized_odds(df, group_column, true_column, predicted_column):
         group_df = df[df[group_column] == group]
 
         # True Positive Rate (TPR)
-        true_positive_rate = group_df[(group_df[true_column] == 1)][predicted_column].mean()
+        true_positive_rate = group_df[group_df[true_column] == 1][predicted_column].mean()
 
         # False Positive Rate (FPR)
-        false_positive_rate = group_df[(group_df[true_column] == 0)][predicted_column].mean()
+        false_positive_rate = group_df[group_df[true_column] == 0][predicted_column].mean()
 
         equalized_odds[group] = {
             'True Positive Rate (TPR)': true_positive_rate,
@@ -77,15 +77,8 @@ def calculate_fpr_parity(df, group_column, true_column, predicted_column):
     return fpr_parity
 
 
-if __name__ == '__main__':
+def run(folder_name, endpoint):
     threshold = 0.8
-    folder_name = "obesity stigma_gpt-4o_2024_07_17__18_29_43"
-    # gemma-7b-20240903-163409
-    # huggingface-pytorch-tgi-inference-2024-09-03-15-20-50-976
-    # huggingface-pytorch-tgi-inference-2024-09-03-15-56-22-457
-    # jumpstart-dft-meta-textgeneration-l-20240903-162450
-    # mistral-7b-v3-20240903-162556
-    endpoint = "jumpstart-dft-meta-textgeneration-l-20240903-162450"
     endpoint = endpoint.replace("jumpstart-dft-hf-llm-", "")
 
     data = {
@@ -99,34 +92,53 @@ if __name__ == '__main__':
         file_yesno_path = file_in_path[:-5] + "_yesno" + file_in_path[-5:]
         df_tmp = pd.read_excel(file_yesno_path)
         length = len(df_tmp['llm_response_yesno'])
-        data['group'] += ([sa] * length)
+        data['group'] += [sa] * length
         data['true_label'] += df_tmp['gt_yesno'].fillna(False).tolist()
         data['predicted_label'] += df_tmp['llm_response_yesno'].tolist()
 
     df = pd.DataFrame(data)
 
-    # Calculate demographic parity
+    # Calculate metrics
     demographic_parity = calculate_demographic_parity(df, 'group', 'predicted_label')
-    print("Demographic Parity per group:")
-    print(demographic_parity)
-
-    # Calculate equal opportunity
     equal_opportunity = calculate_equal_opportunity(df, 'group', 'true_label', 'predicted_label')
-    print("\nEqual Opportunity per group:")
-    print(equal_opportunity)
-
-    # Calculate equalized odds (both TPR and FPR)
     equalized_odds = calculate_equalized_odds(df, 'group', 'true_label', 'predicted_label')
-    print("\nEqualized Odds (TPR and FPR) per group:")
-    for group, odds in equalized_odds.items():
-        print(f"Group {group}: {odds}")
-
-    # Calculate PPV-parity (Precision parity)
     ppv_parity = calculate_ppv_parity(df, 'group', 'true_label', 'predicted_label')
-    print("\nPPV-Parity (Precision) per group:")
-    print(ppv_parity)
-
-    # Calculate FPR-parity (False Positive Rate parity)
     fpr_parity = calculate_fpr_parity(df, 'group', 'true_label', 'predicted_label')
-    print("\nFPR-Parity (False Positive Rate) per group:")
-    print(fpr_parity)
+
+    # Aggregate metrics into a DataFrame with metrics as rows and groups as columns
+    groups = df['group'].unique()
+
+    # Prepare a dictionary where keys are metrics and values are dictionaries of group: value
+    metrics_dict = {
+        'Demographic Parity': demographic_parity,
+        'Equal Opportunity': equal_opportunity,
+        'True Positive Rate (TPR)': {group: equalized_odds[group]['True Positive Rate (TPR)'] for group in groups},
+        'False Positive Rate (FPR)': {group: equalized_odds[group]['False Positive Rate (FPR)'] for group in groups},
+        'PPV-Parity (Precision)': ppv_parity,
+        'FPR-Parity': fpr_parity
+    }
+
+    # Create DataFrame
+    metrics_df = pd.DataFrame(metrics_dict)
+    metrics_df = metrics_df.transpose()
+
+    # Convert DataFrame to LaTeX table format
+    latex_table = metrics_df.to_latex(float_format="%.2f", index=True)
+
+    print(latex_table)
+
+
+if __name__ == "__main__":
+    folder_name = "obesity stigma_gpt-4o_2024_07_17__18_29_43"
+    endpoint_list = [
+        "gemma-7b-20240903-163409",
+        "jumpstart-dft-meta-textgeneration-l-20240903-162450",
+        "jumpstart-dft-meta-textgeneration-l-20240903-162450",
+        "mistral-7b-v3-20240903-162556",
+        "huggingface-pytorch-tgi-inference-2024-09-03-15-20-50-976",
+        "huggingface-pytorch-tgi-inference-2024-09-03-15-56-22-457",
+        ]
+
+    for endpoint in endpoint_list:
+        print("\multicolumn{6}{c}{" + endpoint + "} \\\\")
+        run(folder_name, endpoint)
